@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+backend/.env
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# DB data
+docker/pgdata/
+
+# IDE
+.vscode/
+.idea/
+.env
+backend/.venv/
