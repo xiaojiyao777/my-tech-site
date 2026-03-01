@@ -19,12 +19,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS：明确限制方法，credentials 模式下不允许 * origin
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 app.include_router(articles_router, prefix="/api/v1")

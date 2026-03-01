@@ -16,3 +16,4 @@ docker/pgdata/
 # IDE
 .vscode/
 .idea/
+.env
