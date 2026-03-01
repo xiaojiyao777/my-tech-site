@@ -1,85 +1,101 @@
 import { useEffect, useState } from 'react'
-import { Card, List, Tag, Typography, Pagination, Space, Spin, message } from 'antd'
-import { CalendarOutlined, TagsOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import { getArticles, ArticleListItem } from '../services/api'
+import { Typography, Tag, Card, Row, Col, Pagination, Spin, Empty, Space } from 'antd'
+import { CalendarOutlined, TagOutlined, ArrowRightOutlined } from '@ant-design/icons'
+import { getArticles, ArticleListItem } from '../api/articles'
+import dayjs from 'dayjs'
 
 const { Title, Paragraph, Text } = Typography
 
+const TAG_COLORS = ['blue', 'geekblue', 'purple', 'cyan', 'green', 'volcano']
+
 export default function Home() {
+  const navigate = useNavigate()
   const [articles, setArticles] = useState<ArticleListItem[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
-  const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
+  const [loading, setLoading] = useState(true)
 
-  const fetchArticles = async (p: number) => {
+  useEffect(() => {
     setLoading(true)
-    try {
-      const res = await getArticles(p, 10)
-      setArticles(res.data.items)
-      setTotal(res.data.total)
-    } catch {
-      message.error('获取文章失败，请确认后端服务已启动')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { fetchArticles(page) }, [page])
+    getArticles(page, 9)
+      .then(res => {
+        setArticles(res.data.items)
+        setTotal(res.data.total)
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [page])
 
   return (
-    <div style={{ maxWidth: 860, margin: '0 auto', padding: '40px 24px' }}>
+    <div>
       {/* Hero */}
-      <div style={{ textAlign: 'center', marginBottom: 48 }}>
-        <Title level={1} style={{ fontSize: 36, marginBottom: 12 }}>
-          👨‍💻 Jiyao 的技术空间
+      <div style={{ textAlign: 'center', padding: '64px 0 48px' }}>
+        <Title style={{ fontSize: 48, marginBottom: 16 }}>
+          👋 Hi, I'm <span style={{ color: '#1677ff' }}>Jiyao</span>
         </Title>
-        <Paragraph style={{ fontSize: 16, color: '#666' }}>
-          运筹优化 · LLM 研究 · Agent 工程 · 全栈开发
+        <Paragraph style={{ fontSize: 18, color: '#666', maxWidth: 600, margin: '0 auto' }}>
+          专注于 LLM 内核研究、运筹优化与 Agent 自动化的工程师。
+          这里记录我的技术探索与实践。
         </Paragraph>
+        <Space style={{ marginTop: 24 }}>
+          {['LLM', 'Transformer', 'Agent', 'Operations Research', 'Python', 'FastAPI'].map((tag, i) => (
+            <Tag key={tag} color={TAG_COLORS[i % TAG_COLORS.length]} style={{ fontSize: 13, padding: '2px 10px' }}>
+              {tag}
+            </Tag>
+          ))}
+        </Space>
       </div>
 
-      {/* Article List */}
-      <Title level={3} style={{ marginBottom: 24 }}>最新文章</Title>
+      {/* Articles */}
+      <div style={{ marginBottom: 24 }}>
+        <Title level={3}>最新文章</Title>
+      </div>
+
       <Spin spinning={loading}>
-        <List
-          dataSource={articles}
-          renderItem={(item) => (
-            <Card
-              hoverable
-              style={{ marginBottom: 16, cursor: 'pointer' }}
-              onClick={() => navigate(`/article/${item.id}`)}
-            >
-              <Title level={4} style={{ marginBottom: 8 }}>{item.title}</Title>
-              <Paragraph style={{ color: '#555', marginBottom: 12 }}>
-                {item.summary}
-              </Paragraph>
-              <Space wrap>
-                <Space>
-                  <CalendarOutlined style={{ color: '#999' }} />
-                  <Text type="secondary">
-                    {new Date(item.created_at).toLocaleDateString('zh-CN')}
-                  </Text>
-                </Space>
-                {item.tags.map(tag => (
-                  <Tag key={tag} color="blue">{tag}</Tag>
-                ))}
-              </Space>
-            </Card>
-          )}
-        />
+        {articles.length === 0 && !loading ? (
+          <Empty description="暂无文章" />
+        ) : (
+          <Row gutter={[24, 24]}>
+            {articles.map(article => (
+              <Col xs={24} sm={12} lg={8} key={article.id}>
+                <Card
+                  hoverable
+                  style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+                  styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column' } }}
+                  onClick={() => navigate(`/articles/${article.id}`)}
+                >
+                  <Space style={{ marginBottom: 8 }}>
+                    {article.tags.slice(0, 2).map((tag, i) => (
+                      <Tag key={tag} color={TAG_COLORS[i % TAG_COLORS.length]}>{tag}</Tag>
+                    ))}
+                  </Space>
+                  <Title level={5} style={{ marginTop: 0 }}>{article.title}</Title>
+                  <Paragraph
+                    ellipsis={{ rows: 3 }}
+                    style={{ color: '#666', flex: 1 }}
+                  >
+                    {article.summary}
+                  </Paragraph>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      <CalendarOutlined style={{ marginRight: 4 }} />
+                      {dayjs(article.created_at).format('YYYY-MM-DD')}
+                    </Text>
+                    <Text style={{ color: '#1677ff', fontSize: 12 }}>
+                      阅读全文 <ArrowRightOutlined />
+                    </Text>
+                  </div>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        )}
       </Spin>
 
-      {total > 10 && (
-        <div style={{ textAlign: 'center', marginTop: 24 }}>
-          <Pagination
-            current={page}
-            total={total}
-            pageSize={10}
-            onChange={setPage}
-            showSizeChanger={false}
-          />
+      {total > 9 && (
+        <div style={{ textAlign: 'center', marginTop: 32 }}>
+          <Pagination current={page} total={total} pageSize={9} onChange={setPage} showSizeChanger={false} />
         </div>
       )}
     </div>

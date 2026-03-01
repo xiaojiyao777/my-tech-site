@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Typography, Tag, Space, Spin, Button, message } from 'antd'
-import { ArrowLeftOutlined, CalendarOutlined } from '@ant-design/icons'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getArticle, ArticleDetail as IArticleDetail } from '../services/api'
+import { Typography, Tag, Spin, Button, Space, Divider } from 'antd'
+import { ArrowLeftOutlined, CalendarOutlined } from '@ant-design/icons'
+import { getArticle, ArticleDetail as IArticleDetail } from '../api/articles'
+import dayjs from 'dayjs'
 
-const { Title, Paragraph, Text } = Typography
+const { Title, Text, Paragraph } = Typography
+const TAG_COLORS = ['blue', 'geekblue', 'purple', 'cyan', 'green', 'volcano']
 
 export default function ArticleDetail() {
   const { id } = useParams<{ id: string }>()
@@ -14,31 +16,45 @@ export default function ArticleDetail() {
 
   useEffect(() => {
     if (!id) return
+    setLoading(true)
     getArticle(id)
       .then(res => setArticle(res.data))
-      .catch(() => message.error('文章不存在或加载失败'))
+      .catch(() => navigate('/'))
       .finally(() => setLoading(false))
   }, [id])
 
-  if (loading) return <div style={{ textAlign: 'center', paddingTop: 80 }}><Spin size="large" /></div>
-  if (!article) return <div style={{ textAlign: 'center', paddingTop: 80 }}>文章不存在</div>
+  if (loading) return <div style={{ textAlign: 'center', padding: 80 }}><Spin size="large" /></div>
+  if (!article) return null
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: '40px 24px' }}>
-      <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')} style={{ marginBottom: 24 }}>
+    <div style={{ maxWidth: 800, margin: '0 auto' }}>
+      <Button
+        icon={<ArrowLeftOutlined />}
+        type="link"
+        style={{ paddingLeft: 0, marginBottom: 24 }}
+        onClick={() => navigate('/')}
+      >
         返回首页
       </Button>
-      <Title level={1} style={{ marginBottom: 12 }}>{article.title}</Title>
-      <Space wrap style={{ marginBottom: 24 }}>
-        <Space>
-          <CalendarOutlined style={{ color: '#999' }} />
-          <Text type="secondary">{new Date(article.created_at).toLocaleDateString('zh-CN')}</Text>
-        </Space>
-        {article.tags.map(tag => <Tag key={tag} color="blue">{tag}</Tag>)}
+
+      <Space style={{ marginBottom: 12 }}>
+        {article.tags.map((tag, i) => (
+          <Tag key={tag} color={TAG_COLORS[i % TAG_COLORS.length]}>{tag}</Tag>
+        ))}
       </Space>
-      <div style={{ lineHeight: 1.8, fontSize: 16, whiteSpace: 'pre-wrap', color: '#333' }}>
+
+      <Title>{article.title}</Title>
+
+      <Text type="secondary">
+        <CalendarOutlined style={{ marginRight: 6 }} />
+        {dayjs(article.created_at).format('YYYY年MM月DD日')}
+      </Text>
+
+      <Divider />
+
+      <Paragraph style={{ fontSize: 16, lineHeight: 2, whiteSpace: 'pre-wrap' }}>
         {article.content}
-      </div>
+      </Paragraph>
     </div>
   )
 }
