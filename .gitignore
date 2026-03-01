@@ -17,3 +17,4 @@ docker/pgdata/
 .vscode/
 .idea/
 .env
+backend/.venv/
