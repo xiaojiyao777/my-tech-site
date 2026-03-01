@@ -19,12 +19,10 @@ class Base(DeclarativeBase):
     pass
 
 
-async def get_db() -> AsyncSession:
+async def get_db():
+    """依赖注入：异步数据库会话，async with 已自动管理资源释放。"""
     async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
+        yield session
 
 
 async def init_db():

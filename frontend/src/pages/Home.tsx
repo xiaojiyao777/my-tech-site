@@ -1,12 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Typography, Tag, Card, Row, Col, Pagination, Spin, Empty, Space } from 'antd'
-import { CalendarOutlined, TagOutlined, ArrowRightOutlined } from '@ant-design/icons'
+import { Typography, Tag, Card, Row, Col, Pagination, Spin, Empty, Space, Alert } from 'antd'
+import { CalendarOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { getArticles, ArticleListItem } from '../api/articles'
 import dayjs from 'dayjs'
 
 const { Title, Paragraph, Text } = Typography
-
 const TAG_COLORS = ['blue', 'geekblue', 'purple', 'cyan', 'green', 'volcano']
 
 export default function Home() {
@@ -15,16 +14,33 @@ export default function Home() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
+    // 取消上一次未完成的请求（防止竞态条件）
+    if (abortRef.current) abortRef.current.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
     setLoading(true)
+    setError(null)
+
     getArticles(page, 9)
       .then(res => {
+        if (controller.signal.aborted) return
         setArticles(res.data.items)
         setTotal(res.data.total)
       })
-      .catch(() => {})
-      .finally(() => setLoading(false))
+      .catch(err => {
+        if (err?.name === 'CanceledError' || controller.signal.aborted) return
+        setError('文章加载失败，请稍后重试')
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false)
+      })
+
+    return () => controller.abort()
   }, [page])
 
   return (
@@ -52,8 +68,12 @@ export default function Home() {
         <Title level={3}>最新文章</Title>
       </div>
 
+      {error && (
+        <Alert type="error" message={error} showIcon style={{ marginBottom: 24 }} />
+      )}
+
       <Spin spinning={loading}>
-        {articles.length === 0 && !loading ? (
+        {!loading && !error && articles.length === 0 ? (
           <Empty description="暂无文章" />
         ) : (
           <Row gutter={[24, 24]}>
@@ -71,10 +91,7 @@ export default function Home() {
                     ))}
                   </Space>
                   <Title level={5} style={{ marginTop: 0 }}>{article.title}</Title>
-                  <Paragraph
-                    ellipsis={{ rows: 3 }}
-                    style={{ color: '#666', flex: 1 }}
-                  >
+                  <Paragraph ellipsis={{ rows: 3 }} style={{ color: '#666', flex: 1 }}>
                     {article.summary}
                   </Paragraph>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
